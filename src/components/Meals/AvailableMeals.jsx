@@ -1,39 +1,57 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Card from "../UI/Card";
 import MealItem from "./MelaItem/MealItem";
 import style from "./AvailableMeals.module.css";
 
-const DUMMY_MEALS = [
-  {
-    id: "m1",
-    name: "Sushi",
-    description: "Finest fish and veggies",
-    price: 22.99,
-  },
-  {
-    id: "m2",
-    name: "Schnitzel",
-    description: "A german specialty!",
-    price: 16.5,
-  },
-  {
-    id: "m3",
-    name: "Barbecue Burger",
-    description: "American, raw, meaty",
-    price: 12.99,
-  },
-  {
-    id: "m4",
-    name: "Green Bowl",
-    description: "Healthy...and green...",
-    price: 18.99,
-  },
-];
-
 const AvailableMeals = () => {
-  const mealsList = DUMMY_MEALS.map((meal) => (
-    <MealItem key={meal.id} {...meal} />
-  ));
+  const [meals, setMeals] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [httpError, setHttpError] = useState(null);
+
+  useEffect(() => {
+    const fetchMeals = async () => {
+      const result = await fetch(
+        "https://fb-crud-a6a92.firebaseio.com/meals.json"
+      );
+      if (!result.ok) {
+        throw Error("Something was wrong");
+      }
+      const data = await result.json();
+      const mealsIds = Object.keys(data);
+      const mappedData = [];
+
+      for (const key of mealsIds) {
+        mappedData.push({ id: key, ...data[key] });
+      }
+
+      setMeals(mappedData);
+      setIsLoading(false);
+    };
+
+    fetchMeals().catch((error) => {
+      setHttpError(error.message);
+      setIsLoading(false);
+    });
+  }, []);
+
+  if (isLoading) {
+    return (
+      <section className={style.mealsLoading}>
+        <p>Loading...</p>
+      </section>
+    );
+  }
+
+  if (httpError) {
+    return (
+      <section className={style.mealsHasError}>
+        <p>{httpError}</p>
+      </section>
+    );
+  }
+
+  const mealsList = meals.map((meal) => <MealItem key={meal.id} {...meal} />);
+
   return (
     <section className={style.meals}>
       <Card>
